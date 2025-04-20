@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from google.cloud import bigquery
 from google.cloud import bigquery_storage
-from IPython.core.display import display, HTML
+from IPython.display import display, HTML
 import subprocess
 import time
 
