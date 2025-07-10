@@ -147,8 +147,12 @@ def run_query(project, query, df_mode=False, output_table=None, partition_column
         else:
             query = additional_query + "AS\n" + query
     start = time.time()
+    p = Path("_last_query.sql")
+    if p.exists():
+        p.chmod(0o644)
     with open("_last_query.sql", "w") as f:
         f.write(query)
+    p.chmod(0o444)
     if df_mode:
         result = bq_client.query(query).to_dataframe(bqs_client)
     else:
