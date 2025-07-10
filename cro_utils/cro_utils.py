@@ -124,7 +124,8 @@ def run_query(project, query, df_mode=False, output_table=None, partition_column
     else:
         query_source = query
     p = Path("_last_query.sql")
-    p.chmod(0o644)
+    if p.exists():
+        p.chmod(0o644)
     with open("_last_query.sql", "w") as f:
         f.write(query_source)
     p.chmod(0o444)
