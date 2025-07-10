@@ -123,9 +123,10 @@ def run_query(project, query, df_mode=False, output_table=None, partition_column
         query_source = query.replace("CREATE_OR_REPLACE_TABLE", "")
     else:
         query_source = query
+    p = Path("_last_query.sql")
+    p.chmod(0o644)
     with open("_last_query.sql", "w") as f:
         f.write(query_source)
-    p = Path("_last_query.sql")
     p.chmod(0o444)
     bq_client = bigquery.Client(project)
     bqs_client = bigquery_storage.BigQueryReadClient()
