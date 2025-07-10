@@ -7,6 +7,7 @@ from google.cloud import bigquery_storage
 from IPython.display import display, HTML
 import subprocess
 import time
+from pathlib import Path
 
 # Evaluate regression
 def evaluate_regression(t, y, yyplot=True, yyplot_png=True, yyplot_svg=False, show_scores=True, yyplot_filename="yyplot"):
@@ -124,6 +125,8 @@ def run_query(project, query, df_mode=False, output_table=None, partition_column
         query_source = query
     with open("_last_query.sql", "w") as f:
         f.write(query_source)
+    p = Path("_last_query.sql")
+    p.chmod(0o444)
     bq_client = bigquery.Client(project)
     bqs_client = bigquery_storage.BigQueryReadClient()
     dry_run_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
