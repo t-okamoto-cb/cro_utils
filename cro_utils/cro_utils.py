@@ -118,17 +118,18 @@ def evaluate_binary_classification(t, y, threshold=0.5, roc_auc_curve=True, roc_
     return df_output
 
 # Query execution function
-def run_query(project, query, df_mode=False, output_table=None, partition_column=None):
+def run_query(project, query, df_mode=False, output_table=None, partition_column=None, query_output=True):
     if "CREATE_OR_REPLACE_TABLE" in query:
         query_source = query.replace("CREATE_OR_REPLACE_TABLE", "")
     else:
         query_source = query
-    p = Path("_last_query.sql")
-    if p.exists():
-        p.chmod(0o644)
-    with open("_last_query.sql", "w") as f:
-        f.write(query_source)
-    p.chmod(0o444)
+    if query_output:
+        p = Path("_last_query.sql")
+        if p.exists():
+            p.chmod(0o644)
+        with open("_last_query.sql", "w") as f:
+            f.write(query_source)
+        p.chmod(0o444)
     bq_client = bigquery.Client(project)
     bqs_client = bigquery_storage.BigQueryReadClient()
     dry_run_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
@@ -147,12 +148,13 @@ def run_query(project, query, df_mode=False, output_table=None, partition_column
         else:
             query = additional_query + "AS\n" + query
     start = time.time()
-    p = Path("_last_query.sql")
-    if p.exists():
-        p.chmod(0o644)
-    with open("_last_query.sql", "w") as f:
-        f.write(query)
-    p.chmod(0o444)
+    if query_output:
+        p = Path("_last_query.sql")
+        if p.exists():
+            p.chmod(0o644)
+        with open("_last_query.sql", "w") as f:
+            f.write(query)
+        p.chmod(0o444)
     if df_mode:
         result = bq_client.query(query).to_dataframe(bqs_client)
     else:
