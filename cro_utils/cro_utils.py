@@ -8,6 +8,10 @@ from IPython.display import display, HTML
 import subprocess
 import time
 from pathlib import Path
+import gspread
+from google.auth import default as google_auth_default
+from gspread_dataframe import set_with_dataframe
+import datetime
 
 # Evaluate regression
 def evaluate_regression(t, y, yyplot=True, yyplot_png=True, yyplot_svg=False, show_scores=True, yyplot_filename="yyplot"):
@@ -220,3 +224,35 @@ def close_excel_file(filename):
         end tell
     """
     subprocess.run(["osascript", "-e", script])
+
+# Dataframe to Google Spread Sheet
+# pip install gspread gspread-dataframe google-auth-oauthlib google-authが必要。
+# 以下の認証も必要
+# gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/drive
+def df_to_spreadsheet(df, prefix=""):
+    # google-authライブラリで認証情報を取得
+    creds, _ = google_auth_default()
+
+    # 取得した認証情報をgspread.authorizeに渡す
+    gc = gspread.authorize(creds)
+
+    # 現在時刻の取得
+    postfix = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+
+    # ファイル名生成
+    if prefix != "":
+        filename = prefix + "_" + postfix
+    else:
+        filename = postfix
+
+    # スプレッドシートを開く
+    spreadsheet = gc.create(filename)
+
+    # ワークシートを選択
+    worksheet = spreadsheet.get_worksheet(0) # 最初のシートを選択する場合
+
+    # DataFrameをワークシートに書き出す (A1セルから書き込みが始まります)
+    set_with_dataframe(worksheet, df)
+
+    # アクセス用URLを返す
+    return spreadsheet.url
