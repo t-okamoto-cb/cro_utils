@@ -256,3 +256,28 @@ def df_to_spreadsheet(df, prefix=""):
 
     # アクセス用URLを返す
     return spreadsheet.url
+
+# Google Spread Sheet to Dataframe
+# pip install gspread gspread-dataframe google-auth-oauthlib google-authが必要。
+# 以下の認証も必要
+# gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/drive
+def spreadsheet_to_dataframe(sheet_key, sheet_name, sheet_range="", start_row=1, column_row=0):
+    # google-authライブラリで認証情報を取得
+    creds, _ = google_auth_default()
+
+    # 取得した認証情報をgspread.authorizeに渡す
+    gc = gspread.authorize(creds)
+
+    # sheetの読み込み
+    spreadsheet = gc.open_by_key(sheet_key)
+    worksheet = spreadsheet.worksheet(sheet_name)
+
+    # Dataの読み込み
+    if sheet_range == "":
+        data = worksheet.get_all_values()
+    else:
+        data = worksheet.get(sheet_range)
+    df = pd.DataFrame(data[start_row:], columns=data[column_row])
+
+    # Dataframeを返す
+    return df
