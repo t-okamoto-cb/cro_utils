@@ -229,7 +229,7 @@ def close_excel_file(filename):
 # pip install gspread gspread-dataframe google-auth-oauthlib google-authが必要。
 # 以下の認証も必要
 # gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/drive
-def df_to_spreadsheet(df, prefix=""):
+def dataframe_to_spreadsheet(df, prefix=""):
     # google-authライブラリで認証情報を取得
     creds, _ = google_auth_default()
 
