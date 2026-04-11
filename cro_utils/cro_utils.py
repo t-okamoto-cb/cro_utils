@@ -12,6 +12,7 @@ import gspread
 from google.auth import default as google_auth_default
 from gspread_dataframe import set_with_dataframe
 import datetime
+import polars as pl
 
 # Evaluate regression
 def evaluate_regression(t, y, yyplot=True, yyplot_png=True, yyplot_svg=False, show_scores=True, yyplot_filename="yyplot"):
@@ -122,7 +123,7 @@ def evaluate_binary_classification(t, y, threshold=0.5, roc_auc_curve=True, roc_
     return df_output
 
 # Query execution function
-def run_query(project, query, df_mode=False, output_table=None, partition_column=None, query_output=True):
+def run_query(project, query, df_mode=False, output_table=None, partition_column=None, query_output=True, polars=False):
     if "CREATE_OR_REPLACE_TABLE" in query:
         query_source = query.replace("CREATE_OR_REPLACE_TABLE", "")
     else:
@@ -136,11 +137,9 @@ def run_query(project, query, df_mode=False, output_table=None, partition_column
         p.chmod(0o444)
     bq_client = bigquery.Client(project)
     bqs_client = bigquery_storage.BigQueryReadClient()
-    dry_run_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
-    query_job_dry_run = bq_client.query(query_source, job_config=dry_run_config)
-    print("Query will process {:.3f} GB.".format(query_job_dry_run.total_bytes_processed / 1024 / 1024 / 1024))
     if output_table is not None:
         df_mode = False
+        polars = False
         if partition_column is not None:
             additional_query = f"DROP TABLE IF EXISTS `{output_table}`;\n"
             additional_query += f"CREATE TABLE `{output_table}`\n"
@@ -159,10 +158,18 @@ def run_query(project, query, df_mode=False, output_table=None, partition_column
         with open("_last_query.sql", "w") as f:
             f.write(query)
         p.chmod(0o444)
-    if df_mode:
-        result = bq_client.query(query).to_dataframe(bqs_client)
+    query_job = bq_client.query(query)
+    if df_mode or polars:
+        # Arrow形式でダウンロード（列指向フォーマット）し、Storage Read APIで高速化
+        arrow_table = query_job.to_arrow(bqstorage_client=bqs_client)
+        if polars:
+            # ゼロコピーに近い速度でPolarsに変換
+            result = pl.from_arrow(arrow_table)
+        else:
+            result = arrow_table.to_pandas()
     else:
-        result = bq_client.query(query).result(timeout=3600*6)
+        result = query_job.result(timeout=3600*6)
+    print("Query processed {:.3f} GB.".format(query_job.total_bytes_processed / 1024 / 1024 / 1024))
     if output_table is not None:
         table = bq_client.get_table(output_table)
         table.description = query_source[:16000]
